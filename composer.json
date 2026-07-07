@@ -1,0 +1,40 @@
+{
+  "name": "bvp/notifier",
+  "description": "BVP Notifier",
+  "license": "MIT",
+  "type": "library",
+  "keywords": [
+    "boatrace",
+    "library"
+  ],
+  "authors": [
+    {
+      "name": "shimomo",
+      "email": "bvp@shimomo.net"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/boatracevibeproject/notifier/issues",
+    "source": "https://github.com/boatracevibeproject/notifier"
+  },
+  "require": {
+    "php": "^8.4",
+    "guzzlehttp/guzzle": "^7.0",
+    "nesbot/carbon": "^3.8.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^13.0",
+    "vimeo/psalm": "^6.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BVP\\Notifier\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "BVP\\Notifier\\Tests\\": "tests/"
+    }
+  },
+  "$schema": "https://getcomposer.org/schema.json"
+}
