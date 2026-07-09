@@ -91,11 +91,19 @@ final class Embed
      *     value: string,
      *     inline: bool,
      *   }>,
+     *   footer: array{
+     *     text: string,
+     *   },
      * }
      */
     public function toArray(): array
     {
-        $payload = ['title' => $this->title];
+        $payload = [
+            'title' => $this->title,
+            'footer' => [
+                'text' => '🚫 公式な情報が必要な場合は、必ず BOATRACE 公式サイトをご確認ください。',
+            ],
+        ];
 
         if ($this->url !== null) {
             $payload['url'] = $this->url;

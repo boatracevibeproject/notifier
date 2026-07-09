@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BVP\Notifier;
 
 use BVP\Notifier\Channels\Embed;
+use BVP\Stadium\Stadium;
 use Carbon\CarbonImmutable as Carbon;
 
 /**
@@ -30,16 +31,27 @@ final class Formatter
         Carbon $closedAt,
         array $racers,
     ): string {
+        $stadiumName = Stadium::fromNumber($stadiumNumber)?->shortName();
+
+        $title = "{$date->format('Y-m-d')} {$stadiumName} {$raceNumber} R";
+        $description = "締切時刻: {$closedAt->format('H:i')}";
+
         $lines = [];
 
-        $lines[] = "【{$date->format('Y-m-d')} {$stadiumNumber} {$raceNumber}R】{$closedAt->format('H:i')}";
+        $lines[] = "{$title}\n{$description}";
         $lines[] = '```';
 
         foreach ($racers as $racer) {
                 $lines[] = implode(' | ', [
                 sprintf('%d', $racer['entry_number'] ?? '-'),
                 sprintf('%s', $racer['name'] ?? '-'),
-                sprintf('%s 級', $racer['rank_number'] ?? '-'),
+                sprintf('%s級', match ($racer['rank_number'] ?? '') {
+                    1 => 'A1',
+                    2 => 'A2',
+                    3 => 'B1',
+                    4 => 'B2',
+                    default => '-',
+                }),
                 sprintf('F%d', $racer['flying_count'] ?? '-'),
                 sprintf('L%d', $racer['late_count'] ?? '-'),
             ]);
@@ -70,26 +82,33 @@ final class Formatter
         $values = array_map(fn(array $racer): string => implode(' | ', [
             sprintf('%d', $racer['entry_number'] ?? '-'),
             sprintf('%s', $racer['name'] ?? '-'),
-            sprintf('%s 級', $racer['rank_number'] ?? '-'),
-            sprintf('F%d', $racer['flying_count'] ?? '-'),
-            sprintf('L%d', $racer['late_count'] ?? '-'),
+            sprintf('%s級', match ($racer['rank_number'] ?? '') {
+                1 => 'A1',
+                2 => 'A2',
+                3 => 'B1',
+                4 => 'B2',
+                default => '-',
+            }),
+            sprintf('F%d/L%d', $racer['flying_count'] ?? '-', $racer['late_count'] ?? '-'),
         ]), $racers);
 
-        $url = sprintf(
-            self::BASE_URL,
-            $date->format('Ymd'),
-            $stadiumNumber,
-            $raceNumber,
-        );
+        $stadiumName = Stadium::fromNumber($stadiumNumber)?->shortName();
+
+        $title = "{$date->format('Y-m-d')} {$stadiumName} {$raceNumber} R";
+        $url = sprintf(self::BASE_URL, $date->format('Ymd'), $stadiumNumber, $raceNumber);
+        $description = "締切時刻: {$closedAt->format('H:i')}";
+
+        $name = '出走表';
+        $value = "```\n" . implode("\n", $values) . "\n```";
 
         return new Embed(
-            title: "【{$date->format('Y-m-d')} {$stadiumNumber} {$raceNumber} R】",
+            title: $title,
             url: $url,
-            description: "締切時刻: {$closedAt->format('H:i')}",
+            description: $description,
             fields: [[
                 'inline' => false,
-                'name' => '出走表',
-                'value' => "```\n" . implode("\n", $values) . "\n```",
+                'name' => $name,
+                'value' => $value,
             ]],
             color: $color,
         );
