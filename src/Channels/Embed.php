@@ -19,6 +19,7 @@ final class Embed
 
     /**
      * @param string $title
+     * @param ?string $url
      * @param ?string $description
      * @param array<int, array{
      *   name: string,
@@ -29,20 +30,31 @@ final class Embed
      */
     public function __construct(
         public readonly string $title,
+        public readonly ?string $url = null,
         public readonly ?string $description = null,
         public readonly array $fields = [],
         public readonly ?int $color = null,
     ) {
-        if (mb_strlen($this->title) > self::TITLE_MAX_LENGTH) {
+        $titleLength = mb_strlen($this->title);
+
+        if ($titleLength > self::TITLE_MAX_LENGTH) {
             throw new InvalidArgumentException(
-                "Embed title must be {$this->title} chars or fewer (" . self::TITLE_MAX_LENGTH . ' allowed).',
+                "Embed title must be {$titleLength} chars or fewer (" . self::TITLE_MAX_LENGTH . ' allowed).',
             );
         }
 
-        if ($this->description !== null && mb_strlen($this->description) > self::DESCRIPTION_MAX_LENGTH) {
-            throw new InvalidArgumentException(
-                'Embed description must be ' . self::DESCRIPTION_MAX_LENGTH . ' chars or fewer.',
-            );
+        if ($this->url !== null && filter_var($this->url, FILTER_VALIDATE_URL) === false) {
+            throw new InvalidArgumentException('Embed url must be a valid URL.');
+        }
+
+        if ($this->description !== null) {
+            $descriptionLength = mb_strlen($this->description);
+
+            if ($descriptionLength > self::DESCRIPTION_MAX_LENGTH) {
+                throw new InvalidArgumentException(
+                    "Embed description must be {$descriptionLength} chars or fewer (" . self::DESCRIPTION_MAX_LENGTH . ' allowed).',
+                );
+            }
         }
 
         if (count($this->fields) > self::MAX_FIELDS) {
@@ -50,15 +62,19 @@ final class Embed
         }
 
         foreach ($this->fields as $field) {
-            if (mb_strlen($field['name']) > self::FIELD_NAME_MAX_LENGTH) {
+            $nameLength = mb_strlen($field['name']);
+
+            if ($nameLength > self::FIELD_NAME_MAX_LENGTH) {
                 throw new InvalidArgumentException(
-                    'Embed field name must be ' . self::FIELD_NAME_MAX_LENGTH . ' chars or fewer.',
+                    "Embed field name must be {$nameLength} chars or fewer (" . self::FIELD_NAME_MAX_LENGTH . ' allowed).',
                 );
             }
 
-            if (mb_strlen($field['value']) > self::FIELD_VALUE_MAX_LENGTH) {
+            $valueLength = mb_strlen($field['value']);
+
+            if ($valueLength > self::FIELD_VALUE_MAX_LENGTH) {
                 throw new InvalidArgumentException(
-                    'Embed field value must be ' . self::FIELD_VALUE_MAX_LENGTH . ' chars or fewer.',
+                    "Embed field value must be {$valueLength} chars or fewer (" . self::FIELD_VALUE_MAX_LENGTH . ' allowed).',
                 );
             }
         }
@@ -67,6 +83,7 @@ final class Embed
     /**
      * @return array{
      *   title: string,
+     *   url?: string,
      *   description?: string,
      *   color?: int,
      *   fields?: list<array{
@@ -79,6 +96,10 @@ final class Embed
     public function toArray(): array
     {
         $payload = ['title' => $this->title];
+
+        if ($this->url !== null) {
+            $payload['url'] = $this->url;
+        }
 
         if ($this->description !== null) {
             $payload['description'] = $this->description;
