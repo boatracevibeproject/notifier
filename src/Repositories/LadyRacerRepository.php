@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace BVP\Notifier;
+namespace BVP\Notifier\Repositories;
 
+use BVP\Notifier\JsonDecoder;
 use Carbon\CarbonImmutable as Carbon;
 use RuntimeException;
 
@@ -12,14 +13,11 @@ use RuntimeException;
  */
 final class LadyRacerRepository
 {
-    /**
-     * @var string
-     */
-    private const PATH_FORMAT = __DIR__ . '/../docs/%s/%s.json';
+    private const PATH_FORMAT = __DIR__ . '/../../docs/%s/%s.json';
 
     /**
      * @param \Carbon\CarbonImmutable $date
-     * @return array
+     * @return list<int>
      * @throws \RuntimeException
      */
     public function findNumbers(Carbon $date): array
@@ -36,6 +34,13 @@ final class LadyRacerRepository
             throw new RuntimeException("Failed to load JSON: could not read file: {$path}");
         }
 
+        /**
+         * @var array{
+         *   lady_racers: array{
+         *     number: int,
+         *   },
+         * } $payload
+         */
         $payload = JsonDecoder::decode($json, $path);
 
         $ladyRacers = $payload['lady_racers'] ?? [];

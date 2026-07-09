@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace BVP\Notifier;
 
-use BVP\Notifier\Channel\NotificationChannel;
+use BVP\Notifier\Channels\NotificationChannel;
+use BVP\Notifier\Chunkers\EmbedChunker;
+use BVP\Notifier\Repositories\LadyRacerRepository;
+use BVP\Notifier\Repositories\SentReminderRepository;
 use Carbon\CarbonImmutable as Carbon;
+use Generator;
 
 /**
  * @author shimomo
@@ -13,16 +17,25 @@ use Carbon\CarbonImmutable as Carbon;
 final class Notifier
 {
     /**
-     * @param \BVP\Notifier\LadyRacerRepository $ladyRacerRepository
-     * @param \BVP\Notifier\RaceProgramFetcher $raceProgramFetcher
-     * @param \BVP\Notifier\RaceProgramFormatter $raceProgramFormatter
-     * @param \BVP\Notifier\Channel\NotificationChannel $channel
+     * @var non-empty-string
+     */
+    private const string TIMEZONE = 'Asia/Tokyo';
+
+    /**
+     * @param \BVP\Notifier\Fetcher $fetcher
+     * @param \BVP\Notifier\Formatter $formatter
+     * @param \BVP\Notifier\Repositories\LadyRacerRepository $ladyRacerRepository
+     * @param \BVP\Notifier\Repositories\SentReminderRepository $sentReminderRepository
+     * @param \BVP\Notifier\Chunkers\EmbedChunker $embedChunker
+     * @param \BVP\Notifier\Channels\NotificationChannel $channel
      * @param ?\Carbon\CarbonImmutable $date
      */
     public function __construct(
+        private readonly Fetcher $fetcher,
+        private readonly Formatter $formatter,
         private readonly LadyRacerRepository $ladyRacerRepository,
-        private readonly RaceProgramFetcher $raceProgramFetcher,
-        private readonly RaceProgramFormatter $raceProgramFormatter,
+        private readonly SentReminderRepository $sentReminderRepository,
+        private readonly EmbedChunker $embedChunker,
         private readonly NotificationChannel $channel,
         private readonly ?Carbon $date = null,
     ) {
@@ -32,16 +45,49 @@ final class Notifier
     /**
      * @return void
      */
-    public function notify(): void
+    public function notifySummary(): void
     {
-        $messages = [];
+        $embeds = [];
 
-        foreach ($this->findLadyOnlyRaces() as [$date, $stadiumNumber, $raceNumber, $racers]) {
-            $messages[] = $this->raceProgramFormatter->format($date, $stadiumNumber, $raceNumber, $racers);
+        foreach ($this->findLadyOnlyRaces() as [$date, $stadiumNumber, $raceNumber, $closedAt, $racers]) {
+            $embeds[] = $this->formatter->formatEmbed($date, $stadiumNumber, $raceNumber, $closedAt, $racers);
         }
 
-        if (!empty($messages)) {
-            $this->channel->send(implode("\n\n", $messages));
+        if (empty($embeds)) {
+            return;
+        }
+
+        foreach ($this->embedChunker->chunk($embeds) as $chunk) {
+            $this->channel->sendEmbeds($chunk);
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function notifyReminder(): void
+    {
+        foreach ($this->findLadyOnlyRaces() as [$date, $stadiumNumber, $raceNumber, $closedAt, $racers]) {
+            if (!Carbon::parse($closedAt, self::TIMEZONE)->between(
+                Carbon::now(self::TIMEZONE)->subMinutes(20),
+                Carbon::now(self::TIMEZONE),
+            )) {
+                continue;
+            }
+
+            $alreadySent = $this->sentReminderRepository->markAsSentUnlessAlreadySent(
+                $date,
+                $stadiumNumber,
+                $raceNumber,
+            );
+
+            if ($alreadySent) {
+                continue;
+            }
+
+            $embed = $this->formatter->formatEmbed($date, $stadiumNumber, $raceNumber, $closedAt, $racers);
+
+            $this->channel->sendEmbeds([$embed]);
         }
     }
 
@@ -50,33 +96,40 @@ final class Notifier
      *   0: \Carbon\CarbonImmutable,
      *   1: int<1, 24>,
      *   2: int<1, 12>,
-     *   3: array<int<1, 6>, array<non-empty-string, int|float|string>>
+     *   3: \Carbon\CarbonImmutable,
+     *   4: array<int<1, 6>, array<string, int|float|string|null>>
      * }>
      */
-    public function findLadyOnlyRaces(): \Generator
+    public function findLadyOnlyRaces(): Generator
     {
-        $date = $this->date ?? Carbon::today();
+        $date = $this->date ?? Carbon::today(self::TIMEZONE);
 
         $ladyRacerNumbers = $this->ladyRacerRepository->findNumbers($date);
-        $stadiums = $this->raceProgramFetcher->fetchStadiums($date);
 
-        foreach ($stadiums as $stadiumNumber => $stadium) {
-            foreach ($stadium['races'] as $raceNumber => $race) {
-                if ($this->isAllLadyRace($race['racers'], $ladyRacerNumbers)) {
-                    yield [$date, $stadiumNumber, $raceNumber, $race['racers']];
+        foreach ($this->fetcher->fetchPrograms($date)['stadiums'] as $stadium) {
+            foreach ($stadium['races'] as $race) {
+                $racerNumbers = array_column($race['racers'], 'number');
+
+                if ($this->isAllLadyRace($racerNumbers, $ladyRacerNumbers)) {
+                    yield [
+                        Carbon::parse($race['date'], self::TIMEZONE),
+                        $race['stadium_number'],
+                        $race['race_number'],
+                        Carbon::parse($race['closed_at'], self::TIMEZONE),
+                        $race['racers'],
+                    ];
                 }
             }
         }
     }
 
     /**
-     * @param array<int, array{number: int}> $racers
-     * @param list<int|string> $ladyRacerNumbers
+     * @param list<int> $racerNumbers
+     * @param list<int> $ladyRacerNumbers
+     * @return bool
      */
-    private function isAllLadyRace(array $racers, array $ladyRacerNumbers): bool
+    private function isAllLadyRace(array $racerNumbers, array $ladyRacerNumbers): bool
     {
-        $racerNumbers = array_column($racers, 'number');
-
         return empty(array_diff($racerNumbers, $ladyRacerNumbers));
     }
 }

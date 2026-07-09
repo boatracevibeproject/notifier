@@ -1,82 +1,120 @@
-# =====================
-# OS Related
-# =====================
-# macOS
+#####################################
+# OS依存ファイル
+#####################################
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
 Thumbs.db
-Desktop.ini
 ehthumbs.db
-$RECYCLE.BIN/
+Desktop.ini
 
-# Linux
-*~
-
-# =====================
-# Editor / IDE
-# =====================
-# VSCode
-.vscode/
-
-# PhpStorm / JetBrains
-.idea/
-*.iml
-
-# Vim / others
-*~
+#####################################
+# 一時ファイル・ログ・バックアップ
+#####################################
+*.log
+*.tmp
 *.swp
 *.swo
+*.bak
+*.orig
 
-# =====================
-# PHP / Composer
-# =====================
-# Composer
-/vendor/
-/packages/*/vendor/
+#####################################
+# 環境変数・機密情報
+#####################################
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.pem
+
+#####################################
+# ビルド成果物・キャッシュ
+#####################################
+dist/
+build/
+out/
+tmp/
+cache/
+*.pyc
+__pycache__/
+
+#####################################
+# IDE / エディタ設定
+#####################################
+# VSCode
+.vscode/
+.history/
+
+# JetBrains系（PhpStormなど）
+.idea/
+
+#####################################
+# Node.js関連
+#####################################
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log*
+pnpm-debug.log*
+
+#####################################
+# PHP関連設定
+#####################################
+
+# Composerの依存関係
+vendor/
 composer.phar
 composer.lock
 
-# PHPUnit
-.phpunit.result.cache
+# PHPUnitのキャッシュとレポート
 .phpunit.cache
+.phpunit.result.cache
+phpunit.result.cache
 phpunit.xml
 
-# Psalm
+# PHP-CS-Fixerのキャッシュ
+.php-cs-fixer.cache
+
+# PHPStanやPsalmなど静的解析ツールのキャッシュ
+.phpstan/
 psalm.xml
-psalm.xml.cache
 
-# PHPStan
-phpstan.neon.cache
+# SymfonyやLaravelなどのキャッシュ・ログ・セッション
+bootstrap/cache/
+var/cache/
+var/log/
+*.cache
 
-# PHPCS
-phpcs.xml
-phpcs.xml.cache
-
-# =====================
-# Environment / Config
-# =====================
-.env
+# Laravel特有
+.env.backup
 .env.local
-.env.*.local
+.env.production
+.env.testing
+homestead.yaml
+Homestead.yaml
+Homestead.json
 
-# =====================
-# Logs / Temporary / Cache
-# =====================
-*.log
-logs/
-tmp/
-cache/
-build/
+# WordPress（テーマ・プラグイン開発時）
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/debug.log
+
+#####################################
+# カバレッジ関連
+#####################################
 coverage/
+*.lcov
 
-# =====================
-# Misc / System files
-# =====================
-*.bak
-*.tmp
-*.old
-*.orig
-*.rej
+#####################################
+# その他
+#####################################
+*.iml
+*.class
+*.o
+*.out
+*.so
+*.dll
+*.exe
+*.pid
+docs/*/*.json
+storage/*.json

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BVP\Notifier\Channel;
+namespace BVP\Notifier\Channels;
 
 /**
  * @author shimomo
@@ -14,4 +14,10 @@ interface NotificationChannel
      * @return void
      */
     public function send(string $message): void;
+
+    /**
+     * @param list<\BVP\Notifier\Channels\Embed> $embeds
+     * @return void
+     */
+    public function sendEmbeds(array $embeds): void;
 }
