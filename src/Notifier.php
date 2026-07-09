@@ -69,8 +69,8 @@ final class Notifier
     {
         foreach ($this->findLadyOnlyRaces() as [$date, $stadiumNumber, $raceNumber, $closedAt, $racers]) {
             if (!Carbon::parse($closedAt, self::TIMEZONE)->between(
-                Carbon::now(self::TIMEZONE)->subMinutes(20),
                 Carbon::now(self::TIMEZONE),
+                Carbon::now(self::TIMEZONE)->addMinutes(20),
             )) {
                 continue;
             }
