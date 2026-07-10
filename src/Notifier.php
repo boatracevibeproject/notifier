@@ -45,7 +45,7 @@ final class Notifier
     /**
      * @return void
      */
-    public function notifySummary(): void
+    public function notifyReminderDaily(): void
     {
         $embeds = [];
 
